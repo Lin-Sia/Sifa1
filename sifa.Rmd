@@ -5,26 +5,49 @@ date: "2020/4/3"
 output: html_document
 ---
 
+
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+pacman::p_load(dplyr, FactoMineR, factoextra, d3heatmap)
+library(readr)
+D1 <- read_csv("C:/sifa_1/sifa_advisory_test1.csv")
+D2 <- read_csv("C:/sifa_1/sifa_success_test1.csv")
+cols = colorRamp(c('seagreen','lightyellow','red'))
 ```
 
-## R Markdown
+```{r}
+D1 <- transform(D1, class = as.factor(class), G = as.factor(G), F = as.factor(F), R = as.factor(R), R2 = as.factor(R2), C = as.factor(C), S = as.factor(S), adate = as.Date(adate), alastdate = as.Date(alastdate))
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+D2 <- transform(D2, gender = as.factor(gender), residence = as.factor(residence), reference = as.factor(reference), country = as.factor(country), status = as.factor(status), work = as.factor(work), marriage = as.factor(marriage))
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+format(D1$alastdate, format = '%y-%m')
+format(D1$adate, format = '%y-%m')
+
+D1$R[D1$R %in% c("大陸","其他")] <- '其他'
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+par(mar=c(10,3,4,2),cex=0.8)
+n = D1  %>% group_by(R2) %>% count(R)
+n2 = D1  %>% group_by(R2,R) %>% filter(S == '已報名')  %>% count(R) %>% rename(n2 = n)
+D4 = left_join(n, n2)
+D4$n2[is.na(D4$n2)] <- 0
+D4 <- D4 %>% mutate(SR = n2/n)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+X = xtabs(SR ~ R2 + R, D4)
+X = X[order(-rowSums(X)),]                # arrange rows and ...
+X = X[,order(-colSums(X))]                # columns in decending order
+X = as(X, "matrix")        # keep 15 states & 32 categorie
+d3heatmap(log(100+X,10),F,col=cols)
+X %>% as.matrix()
+X = X/rowSums(X)
+pca=PCA(X)
+fviz_pca_biplot(pca, pointsize="cos2", repel=T,, col.ind="#E7B800", alpha.ind=0.3)
+```
+```{r}
+D2 <-
+```
+

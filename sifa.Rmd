@@ -8,8 +8,12 @@ output: html_document
 ##讀資料和讀套件
 ```{r setup, include=FALSE}
 library(tidyverse)
-DA1 <- read_csv("C:/Sifa1/sifa_a.csv")
-DS1 <- read_csv("C:/Sifa1/sifa_s.csv")
+library(lubridate)
+library(scales)
+library(plotly)
+library(hrbrthemes)
+DA1 <- read_csv("sifa_a.csv")
+DS1 <- read_csv("sifa_s.csv")
 ```
 
 ##諮詢名單整理
@@ -21,16 +25,19 @@ DA2 <- transform(DA2, gender = as.factor(gender), listofcompanies = as.factor(li
 ##諮詢成交整理
 ```{r}
 DS2 <- DS1 %>% select(ID, name, gender, age, channel, consultant, birthplace, residence, marriage, area, school, daylast)
-DS2 <- transform(DS2, gender = as.factor(gender), birthplace = as.factor(birthplace), residence = as.factor(residence), channel = as.factor(channel), consultant = as.factor(consultant), marriage = as.factor(marriage), area = as.factor(area), school = as.factor(school))
+DS2 <- transform(DS2, gender = as.factor(gender), birthplace = as.factor(birthplace), residence = as.factor(residence), channel = as.factor(channel), consultant = as.factor(consultant), marriage = as.factor(marriage), area = as.factor(area))
 ```
 
 ###宗麟區
 
 ```{r}
-DA24 <-table(DA2$datelast2) %>% as.data.frame()
-DA24$Var2 <- as.numeric(DA24$Var1)
-DA24 %>% ggplot(aes(x = Var2, y = Freq)) +
-geom_line(ylim = c(10,300))
+P_A_total <- DA2 %>% 
+  mutate(daylast_month = floor_date(datelast, 'month')) %>% 
+  select(name, gender, residence, channel, daylast_month) %>% 
+  filter(channel != '網路名單') %>%
+  group_by(daylast_month) %>% summarise(n_total= n()) %>%
+ggplot(aes(x = daylast_month, y = n_total)) +
+geom_line()+scale_x_date(date_labels = "%m/%Y")
 ```
 
 ##性別來源折線圖
@@ -38,11 +45,14 @@ geom_line(ylim = c(10,300))
 par(mar=c(10,3,4,2),cex=0.8)
 table(DA2$gender) %>% barplot(las=1, main="Gender", , ylim = c(0, 400))
 
-DA2$datelast2 <-format(DA2$datelast, format = '%Y-%m')
-DA22 <-table(DA2$gender, DA2$datelast2) %>% as.data.frame()
-DA22$Var2 <- as.numeric(DA22$Var2)
-DA22 %>% ggplot(aes(x = Var2, y = Freq, col=Var1)) +
-geom_line()
+P_A_gender <- DA2 %>% 
+  mutate(daylast_month = floor_date(datelast, 'month')) %>% 
+  select(name, gender, residence, channel, daylast_month) %>% 
+  filter(channel != '網路名單') %>%
+  group_by(daylast_month, gender) %>% 
+  summarise(n_gender= n()) %>%
+ggplot(aes(x = daylast_month, y = n_gender, col = gender) ) +
+geom_line()+scale_x_date(date_labels = "%m/%Y")
 ```
 ##頻道來源折線圖
 ```{r}
@@ -55,11 +65,12 @@ DA2$channel[DA2$channel %in% c('活動通','部落客','網路廣告','公務出
 DA2$channel[DA2$channel %in% c('Google搜尋', 'Yahoo搜尋')] <- "網路搜尋"
 DA2$channel[DA2$channel %in% c('來電', '來店')] <- "直接找來"
 
-DA2$datelast2 <-format(DA2$datelast, format = '%Y-%m')
-DA23 <-table(DA2$channel, DA2$datelast2) %>% as.data.frame()
-DA23$Var3 <- as.numeric(DA23$Var2)
-DA23 %>% ggplot(aes(x = Var3, y = Freq, col=Var1)) +
-geom_line()
+P_A_channel <- DA2 %>% 
+  mutate(daylast_month = floor_date(datelast, 'month')) %>% 
+  select(name, gender, residence, channel, daylast_month) %>% 
+  group_by(daylast_month, channel) %>% summarise(n_channel= n()) %>%
+ggplot(aes(x = daylast_month, y = n_channel, col = channel) ) +
+geom_line()+scale_x_date(date_labels = "%m/%Y")
 ```
 
 ##Status
@@ -69,16 +80,16 @@ table(DA2$consultant) %>% prop.table() %>% round(2)
 table(DA2$consultant) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
 
 #分析顧問諮詢量
-DA2$datelast2 <-format(DA2$datelast2, format = '%Y-%m')
-DA23 <-table(DA2$consultant, DA2$datelast2) %>% as.data.frame()
-DA23$Var3 <- as.numeric(DA23$Var2)
-DA23 %>% ggplot(aes(x = Var3, y = Freq, col=Var1)) +
-geom_line()
+P_A_consulatant <- DA2 %>% 
+  mutate(daylast_month = floor_date(datelast, 'month')) %>% 
+  select(name, gender, residence, channel, daylast_month, consultant) %>% 
+  filter(channel != '網路名單') %>% group_by(daylast_month, consultant) %>% summarise(n_consultant= n()) %>%
+ggplot(aes(x = daylast_month, y = n_consultant, col = consultant) ) +
+geom_line(size = .1) +scale_x_date(date_labels = "%m/%Y")
 
-DA2L <- DA2 %>% filter(consultant == 'Liya')
-table(DA2L$channel)
-
+ggplotly(P_A_consulatant)
 ```
+##成交機率分析
 ```{r}
 #統計來源
 table(DA2$Status) %>% prop.table() %>% round(2) 
@@ -88,14 +99,13 @@ table(DA2$Status) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
 DA2$Status[DA2$Status %in% c('已報名', '已報名')] <- "成功"
 DA2$Status[DA2$Status %in% c('諮詢中', '放棄', '未聯繫', '可疑名單')] <- "失敗"
 
-DA2$datelast2 <-format(DA2$datelast, format = '%Y-%m')
-DA25 <-table(DA2$Status, DA2$datelast2) %>% as.data.frame()
-DA25$Var3 <- as.numeric(DA25$Var2)
-DA25 %>% ggplot(aes(x = Var3, y = Freq, col=Var1)) +
-geom_line()
-
-table(DA2$channel, DA2$Status)%>% prop.table(margin = 1) %>% round(2) 
-
+P_A_Status <- DA2 %>% 
+  mutate(daylast_month = floor_date(datelast, 'month')) %>% 
+  select(name, gender, residence, channel, daylast_month, consultant, Status) %>% 
+  filter(channel != '網路名單') %>%
+  group_by(daylast_month, Status) %>% summarise(n_Status= n()) %>%
+ggplot(aes(x = daylast_month, y = n_Status, col = Status) ) +
+geom_line()+scale_x_date(date_labels = "%m/%Y")
 ```
 
 ###丁丁區
@@ -103,21 +113,49 @@ table(DA2$channel, DA2$Status)%>% prop.table(margin = 1) %>% round(2)
 #縣市來源直方圖
 table(DA2$residence) %>% prop.table() %>% round(2) 
 table(DA2$residence) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
-DA2$residence[DA2$residence %in% c("其他","大陸","苗栗縣","新竹縣","彰化縣","南投縣","屏東縣","基隆市","雲林縣","嘉義縣","嘉義縣","宜蘭縣","花蓮縣","嘉義市","臺東縣")] <- "全部其它"
-table(DA2$residence) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
 
 par(mar=c(10,3,4,2),cex=0.8)
 table(DA2$residence) %>% sort(T) %>% barplot(las = 2)
 ```
-##縣市來源折線圖
 ```{r}
-DA2$datelast2 <-format(DA2$datelast, format = '%Y-%m')
-DA21 <-table(DA2$residence, DA2$datelast2) %>% as.data.frame()
-DA21$Var2 <- as.numeric(DA21$Var2)
-DA21 %>% ggplot(aes(x = Var2, y = Freq, col=Var1)) +
-geom_line()
+#尺度縮減
+DA2$residence[DA2$residence %in% c("其他","大陸","苗栗縣","新竹縣","彰化縣","南投縣","屏東縣","基隆市","雲林縣","嘉義縣","嘉義縣","宜蘭縣","花蓮縣","嘉義市","臺東縣")] <- "全部其它"
+table(DA2$residence) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
+
+#畫圖
+P_A_residence <- DA2 %>% 
+  mutate(daylast_month = floor_date(datelast, 'month')) %>% 
+  select(name, gender, residence, channel, daylast_month) %>% 
+  group_by(daylast_month, residence) %>%
+  filter(channel != '網路名單') %>%
+  summarise(n_residence= n()) %>%
+ggplot(aes(x = daylast_month, y = n_residence, col=residence)) +
+geom_line()+scale_x_date(date_labels = "%m/%Y")
 ```
+
+
 ###JOJO區
+```{r}
+#統計來源
+table(DS2$school) %>% prop.table() %>% round(2) 
+table(DS2$school) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
+
+#來源尺度縮減
+DS2$school[DS2$school %in% c('SMEAG-SPARTA','SOP','TAKA HARI','BOC','C2','CDU','CEA','CELLA-Uni','CG-Sparta','CIJ-SPARTA','CIP','CNN','EEC','EG','Genius','IMS-Ayala','MeRise','MK','OKEA','QQ-IT PARK','WALES')] <- "其它"
+DA2$channel[DA2$channel %in% c('Google搜尋', 'Yahoo搜尋')] <- "網路搜尋"
+DA2$channel[DA2$channel %in% c('來電', '來店')] <- "直接找來"
+
+P_S_school <- DS2 %>% 
+  mutate(daylast_month = floor_date(daylast, 'month')) %>% 
+  select(name, gender, residence, channel, daylast_month, school) %>% 
+  group_by(daylast_month, school) %>% summarise(n_school= n()) %>%
+ggplot(aes(x = daylast_month, y = n_school, col = school) ) +
+geom_line()+scale_x_date(date_labels = "%m/%Y")+
+  scale_x_date(date_labels = "%m/%Y", breaks  = date_breaks("2 month"))
+```
+
+```{r}
+
 
 ###茶葉區
 ```{r}
@@ -126,9 +164,24 @@ DS2 <- DS2 %>% mutate(agelist = cut_width(x = age, width = 15, boundary = 0, clo
 table(DS2$agelist)  
 plot(DS2$agelist)
 
-DS2$daylast <- format(DS2$daylast, format = '%Y-%m')
-DS21 <- table(DS2$agelist, DS2$daylast) %>% as.data.frame()
-DS21$Var2 <- as.numeric(DS21$Var2)
-DS21 %>% ggplot(aes(x = Var2, y = Freq, col=Var1)) +
-geom_line()
+P_S_age <- DS2 %>% 
+  mutate(daylast_month = floor_date(daylast, 'month')) %>% 
+  select(name, gender, residence, channel, daylast_month, agelist)%>%
+  group_by(daylast_month, agelist) %>%
+  filter(channel != '網路名單') %>%
+  summarise(n_agelist= n()) %>%
+ggplot(aes(x = daylast_month, y = n_agelist, col=agelist)) +
+geom_line()+scale_x_date(date_labels = "%m/%Y", breaks  = date_breaks("2 month"))
+```
+
+
+###成品區
+```{r}
+ggplotly(P_A_channel)
+ggplotly(P_S_school)
+ggplotly(P_S_age)
+ggplotly(P_A_residence)
+P_A_Status
+P_A_total
+P_A_gender
 ```

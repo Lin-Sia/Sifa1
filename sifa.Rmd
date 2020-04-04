@@ -1,53 +1,66 @@
 ---
-title: "sifa"
-author: "Lin"
-date: "2020/4/3"
+title: "SiFa_1"
+author: "Lin, DD, JOJO, David"
+date: "2020/4/4"
 output: html_document
 ---
-
-
+###共同項目
+##讀資料和讀套件
 ```{r setup, include=FALSE}
 library(tidyverse)
-pacman::p_load(dplyr, FactoMineR, factoextra, d3heatmap)
-library(readr)
-D1 <- read_csv("C:/sifa_1/sifa_advisory_test1.csv")
-D2 <- read_csv("C:/sifa_1/sifa_success_test1.csv")
-cols = colorRamp(c('seagreen','lightyellow','red'))
+DA1 <- read_csv("C:/Sifa1/sifa_a.csv")
+DS1 <- read_csv("C:/Sifa1/sifa_s.csv")
 ```
 
+##諮詢名單整理
 ```{r}
-D1 <- transform(D1, class = as.factor(class), G = as.factor(G), F = as.factor(F), R = as.factor(R), R2 = as.factor(R2), C = as.factor(C), S = as.factor(S), adate = as.Date(adate), alastdate = as.Date(alastdate))
-
-D2 <- transform(D2, gender = as.factor(gender), residence = as.factor(residence), reference = as.factor(reference), country = as.factor(country), status = as.factor(status), work = as.factor(work), marriage = as.factor(marriage))
-
-
-format(D1$alastdate, format = '%y-%m')
-format(D1$adate, format = '%y-%m')
-
-D1$R[D1$R %in% c("大陸","其他")] <- '其他'
+DA2 <- DA1 %>% select(ID, name, gender, listofcompanies, residence, channel, consultant, country, referrals, datelast)
+DA2 <- transform(DA2, gender = as.factor(gender), listofcompanies = as.factor(listofcompanies),  channel = as.factor(channel), consultant = as.factor(consultant), country = as.factor(country), referrals = as.factor(referrals))
 ```
+
+##諮詢成交整理
+```{r}
+DS2 <- DS1 %>% select(ID, name, gender, age, channel, consultant, birthplace, residence, marriage, area, school, daylast)
+DS2 <- transform(DS2, gender = as.factor(gender), birthplace = as.factor(birthplace), residence = as.factor(residence), channel = as.factor(channel), consultant = as.factor(consultant), marriage = as.factor(marriage), area = as.factor(area), school = as.factor(school))
+```
+
+###宗麟區
 
 ```{r}
 par(mar=c(10,3,4,2),cex=0.8)
-n = D1  %>% group_by(R2) %>% count(R)
-n2 = D1  %>% group_by(R2,R) %>% filter(S == '已報名')  %>% count(R) %>% rename(n2 = n)
-D4 = left_join(n, n2)
-D4$n2[is.na(D4$n2)] <- 0
-D4 <- D4 %>% mutate(SR = n2/n)
+table(DA2$gender) %>% barplot(las=1, main="Gender", , ylim = c(0, 400))
 ```
-
+###丁丁區
 ```{r}
-X = xtabs(SR ~ R2 + R, D4)
-X = X[order(-rowSums(X)),]                # arrange rows and ...
-X = X[,order(-colSums(X))]                # columns in decending order
-X = as(X, "matrix")        # keep 15 states & 32 categorie
-d3heatmap(log(100+X,10),F,col=cols)
-X %>% as.matrix()
-X = X/rowSums(X)
-pca=PCA(X)
-fviz_pca_biplot(pca, pointsize="cos2", repel=T,, col.ind="#E7B800", alpha.ind=0.3)
-```
-```{r}
-D2 <-
-```
+#縣市來源直方圖
+table(DA2$residence) %>% prop.table() %>% round(2) 
+table(DA2$residence) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
+DA2$residence[DA2$residence %in% c("其他","大陸","苗栗縣","新竹縣","彰化縣","南投縣","屏東縣","基隆市","雲林縣","嘉義縣","嘉義縣","宜蘭縣","花蓮縣","嘉義市","臺東縣")] <- "全部其它"
+table(DA2$residence) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
 
+par(mar=c(10,3,4,2),cex=0.8)
+table(DA2$residence) %>% sort(T) %>% barplot(las = 2)
+```
+##縣市來源折線圖
+```{r}
+DA2$datelast2 <-format(DA2$datelast, format = '%Y-%m')
+DA21 <-table(DA2$residence, DA2$datelast2) %>% as.data.frame()
+DA21$Var2 <- as.numeric(DA21$Var2)
+DA21 %>% ggplot(aes(x = Var2, y = Freq, col=Var1)) +
+geom_line()
+```
+###JOJO區
+
+###茶葉區
+```{r}
+#年齡分佈&折線圖
+DS2 <- DS2 %>% mutate(agelist = cut_width(x = age, width = 15, boundary = 0, closed ="left"))
+table(DS2$agelist)  
+plot(DS2$agelist)
+
+DS2$daylast <- format(DS2$daylast, format = '%Y-%m')
+DS21 <- table(DS2$agelist, DS2$daylast) %>% as.data.frame()
+DS21$Var2 <- as.numeric(DS21$Var2)
+DS21 %>% ggplot(aes(x = Var2, y = Freq, col=Var1)) +
+geom_line()
+```

@@ -14,8 +14,8 @@ DS1 <- read_csv("C:/Sifa1/sifa_s.csv")
 
 ##諮詢名單整理
 ```{r}
-DA2 <- DA1 %>% select(ID, name, gender, listofcompanies, residence, channel, consultant, country, referrals, datelast)
-DA2 <- transform(DA2, gender = as.factor(gender), listofcompanies = as.factor(listofcompanies),  channel = as.factor(channel), consultant = as.factor(consultant), country = as.factor(country), referrals = as.factor(referrals))
+DA2 <- DA1 %>% select(ID, name, gender, listofcompanies, residence, channel, consultant, country, Status, referrals, datelast)
+DA2 <- transform(DA2, gender = as.factor(gender), listofcompanies = as.factor(listofcompanies), consultant = as.factor(consultant), country = as.factor(country), referrals = as.factor(referrals))
 ```
 
 ##諮詢成交整理
@@ -27,9 +27,77 @@ DS2 <- transform(DS2, gender = as.factor(gender), birthplace = as.factor(birthpl
 ###宗麟區
 
 ```{r}
+DA24 <-table(DA2$datelast2) %>% as.data.frame()
+DA24$Var2 <- as.numeric(DA24$Var1)
+DA24 %>% ggplot(aes(x = Var2, y = Freq)) +
+geom_line(ylim = c(10,300))
+```
+
+##性別來源折線圖
+```{r}
 par(mar=c(10,3,4,2),cex=0.8)
 table(DA2$gender) %>% barplot(las=1, main="Gender", , ylim = c(0, 400))
+
+DA2$datelast2 <-format(DA2$datelast, format = '%Y-%m')
+DA22 <-table(DA2$gender, DA2$datelast2) %>% as.data.frame()
+DA22$Var2 <- as.numeric(DA22$Var2)
+DA22 %>% ggplot(aes(x = Var2, y = Freq, col=Var1)) +
+geom_line()
 ```
+##頻道來源折線圖
+```{r}
+#統計來源
+table(DA2$channel) %>% prop.table() %>% round(2) 
+table(DA2$channel) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
+
+#來源尺度縮減
+DA2$channel[DA2$channel %in% c('活動通','部落客','網路廣告','公務出差','文宣海報','企業合作', '遊學說明會','聯盟網','舊生轉介紹','其他')] <- "其它"
+DA2$channel[DA2$channel %in% c('Google搜尋', 'Yahoo搜尋')] <- "網路搜尋"
+DA2$channel[DA2$channel %in% c('來電', '來店')] <- "直接找來"
+
+DA2$datelast2 <-format(DA2$datelast, format = '%Y-%m')
+DA23 <-table(DA2$channel, DA2$datelast2) %>% as.data.frame()
+DA23$Var3 <- as.numeric(DA23$Var2)
+DA23 %>% ggplot(aes(x = Var3, y = Freq, col=Var1)) +
+geom_line()
+```
+
+##Status
+```{r}
+#統計來源
+table(DA2$consultant) %>% prop.table() %>% round(2) 
+table(DA2$consultant) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
+
+#分析顧問諮詢量
+DA2$datelast2 <-format(DA2$datelast2, format = '%Y-%m')
+DA23 <-table(DA2$consultant, DA2$datelast2) %>% as.data.frame()
+DA23$Var3 <- as.numeric(DA23$Var2)
+DA23 %>% ggplot(aes(x = Var3, y = Freq, col=Var1)) +
+geom_line()
+
+DA2L <- DA2 %>% filter(consultant == 'Liya')
+table(DA2L$channel)
+
+```
+```{r}
+#統計來源
+table(DA2$Status) %>% prop.table() %>% round(2) 
+table(DA2$Status) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
+
+#來源尺度縮減
+DA2$Status[DA2$Status %in% c('已報名', '已報名')] <- "成功"
+DA2$Status[DA2$Status %in% c('諮詢中', '放棄', '未聯繫', '可疑名單')] <- "失敗"
+
+DA2$datelast2 <-format(DA2$datelast, format = '%Y-%m')
+DA25 <-table(DA2$Status, DA2$datelast2) %>% as.data.frame()
+DA25$Var3 <- as.numeric(DA25$Var2)
+DA25 %>% ggplot(aes(x = Var3, y = Freq, col=Var1)) +
+geom_line()
+
+table(DA2$channel, DA2$Status)%>% prop.table(margin = 1) %>% round(2) 
+
+```
+
 ###丁丁區
 ```{r}
 #縣市來源直方圖

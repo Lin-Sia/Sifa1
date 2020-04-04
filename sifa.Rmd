@@ -11,7 +11,6 @@ library(tidyverse)
 library(lubridate)
 library(scales)
 library(plotly)
-library(hrbrthemes)
 DA1 <- read_csv("sifa_a.csv")
 DS1 <- read_csv("sifa_s.csv")
 ```
@@ -24,8 +23,8 @@ DA2 <- transform(DA2, gender = as.factor(gender), listofcompanies = as.factor(li
 
 ##諮詢成交整理
 ```{r}
-DS2 <- DS1 %>% select(ID, name, gender, age, channel, consultant, birthplace, residence, marriage, area, school, daylast)
-DS2 <- transform(DS2, gender = as.factor(gender), birthplace = as.factor(birthplace), residence = as.factor(residence), channel = as.factor(channel), consultant = as.factor(consultant), marriage = as.factor(marriage), area = as.factor(area))
+DS2 <- DS1 %>% select(ID, name, gender, age, channel, consultant, birthplace, residence, marriage, area, school, daylast, day1, weeks)
+DS2 <- transform(DS2, gender = as.factor(gender), birthplace = as.factor(birthplace), residence = as.factor(residence), consultant = as.factor(consultant), marriage = as.factor(marriage), area = as.factor(area))
 ```
 
 ###宗麟區
@@ -86,8 +85,6 @@ P_A_consulatant <- DA2 %>%
   filter(channel != '網路名單') %>% group_by(daylast_month, consultant) %>% summarise(n_consultant= n()) %>%
 ggplot(aes(x = daylast_month, y = n_consultant, col = consultant) ) +
 geom_line(size = .1) +scale_x_date(date_labels = "%m/%Y")
-
-ggplotly(P_A_consulatant)
 ```
 ##成交機率分析
 ```{r}
@@ -109,6 +106,7 @@ geom_line()+scale_x_date(date_labels = "%m/%Y")
 ```
 
 ###丁丁區
+##訪談縣市來源分析
 ```{r}
 #縣市來源直方圖
 table(DA2$residence) %>% prop.table() %>% round(2) 
@@ -146,7 +144,7 @@ DA2$channel[DA2$channel %in% c('Google搜尋', 'Yahoo搜尋')] <- "網路搜尋"
 DA2$channel[DA2$channel %in% c('來電', '來店')] <- "直接找來"
 
 P_S_school <- DS2 %>% 
-  mutate(daylast_month = floor_date(daylast, 'month')) %>% 
+  mutate(daylast_month = floor_date(day1, 'month')) %>% 
   select(name, gender, residence, channel, daylast_month, school) %>% 
   group_by(daylast_month, school) %>% summarise(n_school= n()) %>%
 ggplot(aes(x = daylast_month, y = n_school, col = school) ) +
@@ -154,10 +152,10 @@ geom_line()+scale_x_date(date_labels = "%m/%Y")+
   scale_x_date(date_labels = "%m/%Y", breaks  = date_breaks("2 month"))
 ```
 
-```{r}
-
 
 ###茶葉區
+
+##客戶年齡分析
 ```{r}
 #年齡分佈&折線圖
 DS2 <- DS2 %>% mutate(agelist = cut_width(x = age, width = 15, boundary = 0, closed ="left"))
@@ -165,7 +163,7 @@ table(DS2$agelist)
 plot(DS2$agelist)
 
 P_S_age <- DS2 %>% 
-  mutate(daylast_month = floor_date(daylast, 'month')) %>% 
+  mutate(daylast_month = floor_date(day1, 'month')) %>% 
   select(name, gender, residence, channel, daylast_month, agelist)%>%
   group_by(daylast_month, agelist) %>%
   filter(channel != '網路名單') %>%
@@ -174,6 +172,52 @@ ggplot(aes(x = daylast_month, y = n_agelist, col=agelist)) +
 geom_line()+scale_x_date(date_labels = "%m/%Y", breaks  = date_breaks("2 month"))
 ```
 
+##客戶的來源
+```{r}
+#統計來源
+table(DS2$channel) %>% prop.table() %>% round(2)%>% sort(T) 
+table(DS2$channel) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
+
+#來源尺度縮減
+DS2$channel[DS2$channel %in%  c('親友介紹|舊生續報|Google搜尋|Yahoo搜尋|Facebook|網路廣告|文宣海報|報章雜誌|學校訊息|業務代表|舊生轉介紹|遊學說明會|線上英文轉介紹|企業合作|部落客|聯盟網|活動通|Line@|PTT|其他|旅展|來電|來店|公務出差', '展覽', '活動通', '同業請新飛代送', 'PTT', '舊生續報', '學校訊息', '遊學說明會', '部落客', '企業合作')] <- "其它"
+DS2$channel[DS2$channel %in% c('Google搜尋', 'Yahoo搜尋')] <- "網路搜尋"
+DS2$channel[DS2$channel %in% c('來電', '來店')] <- "直接找來"
+
+#畫圖
+P_S_channel <- DS2 %>% 
+  mutate(daylast_month = floor_date(day1, 'month')) %>% 
+  select(name, gender, residence, channel, daylast_month) %>% 
+  group_by(daylast_month, channel) %>% summarise(n_channel= n()) %>%
+ggplot(aes(x = daylast_month, y = n_channel, col = channel) ) +
+geom_line()+scale_x_date(date_labels = "%m/%Y")
+```
+
+##成功總數
+```{r}
+P_S_total <- DS2 %>% 
+  mutate(daylast_month = floor_date(day1, 'month')) %>% 
+  select(name, gender, residence, channel, daylast_month) %>% 
+  group_by(daylast_month) %>% 
+  summarise(n_total= n()) %>%
+  ggplot(aes(x = daylast_month, y = n_total)) + 
+  geom_line()+
+  scale_x_date(date_labels = "%m/%Y", breaks  = date_breaks("2 month"))
+```
+
+##顧客價值
+```{r}
+DS2$value[DS2$weeks <= 4] = 'low'
+DS2$value[DS2$weeks > 4 & DS2$weeks <= 8] = 'mid'
+DS2$value[DS2$weeks > 8] = 'hight'
+table(DS2$value) %>% prop.table() %>% round(2)%>% sort(T)
+table(DS2$value, DS2$channel)%>% prop.table(margin = 2) %>% round(2)
+table(DS2$value, DS2$residence)%>% prop.table(margin = 2) %>% round(2)
+table(DS2$value, DS2$gender)%>% prop.table(margin = 2) %>% round(2)
+table(DS2$value, DS2$agelist)%>% prop.table(margin = 2) %>% round(2)
+table(DS2$value, DS2$school) %>% round(2)
+```
+
+
 
 ###成品區
 ```{r}
@@ -181,7 +225,10 @@ ggplotly(P_A_channel)
 ggplotly(P_S_school)
 ggplotly(P_S_age)
 ggplotly(P_A_residence)
+ggplotly(P_A_consulatant)
+ggplotly(P_S_channel)
 P_A_Status
 P_A_total
+P_S_total
 P_A_gender
 ```

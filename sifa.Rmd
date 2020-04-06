@@ -89,7 +89,7 @@ geom_line(size = .1) +scale_x_date(date_labels = "%m/%Y")
 ##成交機率分析
 ```{r}
 #統計來源
-table(DA2$Status) %>% prop.table() %>% round(2) 
+table(DA2$Status, DA2$channel) %>% prop.table(margin = 2) %>% round(2) 
 table(DA2$Status) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
 
 #來源尺度縮減
@@ -100,9 +100,10 @@ P_A_Status <- DA2 %>%
   mutate(daylast_month = floor_date(datelast, 'month')) %>% 
   select(name, gender, residence, channel, daylast_month, consultant, Status) %>% 
   filter(channel != '網路名單') %>%
-  group_by(daylast_month, Status) %>% summarise(n_Status= n()) %>%
+  group_by(daylast_month, Status, residence) %>% summarise(n_Status= n()/) %>%
 ggplot(aes(x = daylast_month, y = n_Status, col = Status) ) +
 geom_line()+scale_x_date(date_labels = "%m/%Y")
+
 ```
 
 ###丁丁區
@@ -144,7 +145,7 @@ DA2$channel[DA2$channel %in% c('Google搜尋', 'Yahoo搜尋')] <- "網路搜尋"
 DA2$channel[DA2$channel %in% c('來電', '來店')] <- "直接找來"
 
 P_S_school <- DS2 %>% 
-  mutate(daylast_month = floor_date(day1, 'month')) %>% 
+  mutate(daylast_month = floor_date(day1, 'quarter')) %>% 
   select(name, gender, residence, channel, daylast_month, school) %>% 
   group_by(daylast_month, school) %>% summarise(n_school= n()) %>%
 ggplot(aes(x = daylast_month, y = n_school, col = school) ) +
@@ -163,7 +164,7 @@ table(DS2$agelist)
 plot(DS2$agelist)
 
 P_S_age <- DS2 %>% 
-  mutate(daylast_month = floor_date(day1, 'month')) %>% 
+  mutate(daylast_month = floor_date(day1, 'quarter')) %>% 
   select(name, gender, residence, channel, daylast_month, agelist)%>%
   group_by(daylast_month, agelist) %>%
   filter(channel != '網路名單') %>%
@@ -208,13 +209,15 @@ P_S_total <- DS2 %>%
 ```{r}
 DS2$value[DS2$weeks <= 4] = 'low'
 DS2$value[DS2$weeks > 4 & DS2$weeks <= 8] = 'mid'
-DS2$value[DS2$weeks > 8] = 'hight'
+DS2$value[DS2$weeks > 8] = 'high'
 table(DS2$value) %>% prop.table() %>% round(2)%>% sort(T)
 table(DS2$value, DS2$channel)%>% prop.table(margin = 2) %>% round(2)
 table(DS2$value, DS2$residence)%>% prop.table(margin = 2) %>% round(2)
 table(DS2$value, DS2$gender)%>% prop.table(margin = 2) %>% round(2)
 table(DS2$value, DS2$agelist)%>% prop.table(margin = 2) %>% round(2)
 table(DS2$value, DS2$school) %>% round(2)
+table(DS2$value, DS2$consultant) %>% prop.table(margin = 2)%>% round(2)
+table(DS2$residence, DS2$consultant)
 ```
 
 

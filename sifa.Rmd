@@ -53,6 +53,7 @@ P_A_gender <- DA2 %>%
 ggplot(aes(x = daylast_month, y = n_gender, col = gender) ) +
 geom_line()+scale_x_date(date_labels = "%m/%Y")
 ```
+
 ##頻道來源折線圖
 ```{r}
 #統計來源
@@ -100,10 +101,9 @@ P_A_Status <- DA2 %>%
   mutate(daylast_month = floor_date(datelast, 'month')) %>% 
   select(name, gender, residence, channel, daylast_month, consultant, Status) %>% 
   filter(channel != '網路名單') %>%
-  group_by(daylast_month, Status, residence) %>% summarise(n_Status= n()/) %>%
+group_by(daylast_month, Status, residence) %>% summarise(n_Status= n()/) %>%
 ggplot(aes(x = daylast_month, y = n_Status, col = Status) ) +
 geom_line()+scale_x_date(date_labels = "%m/%Y")
-
 ```
 
 ###丁丁區
@@ -116,6 +116,7 @@ table(DA2$residence) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
 par(mar=c(10,3,4,2),cex=0.8)
 table(DA2$residence) %>% sort(T) %>% barplot(las = 2)
 ```
+
 ```{r}
 #尺度縮減
 DA2$residence[DA2$residence %in% c("其他","大陸","苗栗縣","新竹縣","彰化縣","南投縣","屏東縣","基隆市","雲林縣","嘉義縣","嘉義縣","宜蘭縣","花蓮縣","嘉義市","臺東縣")] <- "全部其它"
@@ -145,7 +146,8 @@ DA2$channel[DA2$channel %in% c('Google搜尋', 'Yahoo搜尋')] <- "網路搜尋"
 DA2$channel[DA2$channel %in% c('來電', '來店')] <- "直接找來"
 
 P_S_school <- DS2 %>% 
-  mutate(daylast_month = floor_date(day1, 'quarter')) %>% 
+  mutate(daylast_month = floor_date(daylast, 'month')) %>% 
+>>>>>>> 70fad9660cf8e623d126ce75d56e3f7af40dde93
   select(name, gender, residence, channel, daylast_month, school) %>% 
   group_by(daylast_month, school) %>% summarise(n_school= n()) %>%
 ggplot(aes(x = daylast_month, y = n_school, col = school) ) +
@@ -155,7 +157,7 @@ geom_line()+scale_x_date(date_labels = "%m/%Y")+
 
 
 ###茶葉區
-
+```{r}
 ##客戶年齡分析
 ```{r}
 #年齡分佈&折線圖
@@ -164,7 +166,7 @@ table(DS2$agelist)
 plot(DS2$agelist)
 
 P_S_age <- DS2 %>% 
-  mutate(daylast_month = floor_date(day1, 'quarter')) %>% 
+  mutate(daylast_month = floor_date(daylast, 'month')) %>% 
   select(name, gender, residence, channel, daylast_month, agelist)%>%
   group_by(daylast_month, agelist) %>%
   filter(channel != '網路名單') %>%
@@ -172,6 +174,7 @@ P_S_age <- DS2 %>%
 ggplot(aes(x = daylast_month, y = n_agelist, col=agelist)) +
 geom_line()+scale_x_date(date_labels = "%m/%Y", breaks  = date_breaks("2 month"))
 ```
+
 
 ##客戶的來源
 ```{r}
@@ -228,10 +231,15 @@ ggplotly(P_A_channel)
 ggplotly(P_S_school)
 ggplotly(P_S_age)
 ggplotly(P_A_residence)
+<<<<<<< HEAD
 ggplotly(P_A_consulatant)
 ggplotly(P_S_channel)
 P_A_Status
 P_A_total
 P_S_total
+=======
+P_A_Status
+P_A_total
+>>>>>>> 70fad9660cf8e623d126ce75d56e3f7af40dde93
 P_A_gender
 ```

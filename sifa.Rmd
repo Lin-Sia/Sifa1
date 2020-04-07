@@ -11,6 +11,7 @@ library(tidyverse)
 library(lubridate)
 library(scales)
 library(plotly)
+library(googleVis)
 DA1 <- read_csv("sifa_a.csv")
 DS1 <- read_csv("sifa_s.csv")
 ```
@@ -101,9 +102,31 @@ P_A_Status <- DA2 %>%
   mutate(daylast_month = floor_date(datelast, 'month')) %>% 
   select(name, gender, residence, channel, daylast_month, consultant, Status) %>% 
   filter(channel != '網路名單') %>%
-group_by(daylast_month, Status, residence) %>% summarise(n_Status= n()/) %>%
+group_by(daylast_month, Status, residence) %>% summarise(n_Status= n()) %>%
 ggplot(aes(x = daylast_month, y = n_Status, col = Status) ) +
 geom_line()+scale_x_date(date_labels = "%m/%Y")
+```
+
+##動態泡泡圖示範
+```{r}
+X <- DA2 %>% 
+  mutate(daylast_month = floor_date(datelast, 'month')) %>% 
+  select(ID, residence, daylast_month, Status, channel) %>% 
+  filter(channel != '網路名單') %>%
+group_by(daylast_month, residence, Status)%>% summarise(n_s = n()) %>% ungroup() %>% filter(Status == '成功') %>% select('residence','daylast_month', 'n_s')
+
+Y <- DA2 %>% 
+  mutate(daylast_month = floor_date(datelast, 'month')) %>% 
+  select(ID, residence, daylast_month, Status, channel) %>% 
+  filter(channel != '網路名單') %>%
+group_by(residence,daylast_month)%>% summarise(n_total = n()) 
+
+Z <-left_join(Y, X, by = c('residence','daylast_month')) %>% mutate(sr = n_s/n_total)
+Z$residence[is.na(Z$residence)] = '未知'
+Z$sr[is.na(Z$sr)] = 0
+Z$n_s[is.na(Z$n_s)] = 0
+
+gvisMotionChart(Z, idvar = 'residence', timevar = 'daylast_month', xvar = 'n_total', yvar = 'sr') %>% plot
 ```
 
 ###丁丁區
@@ -157,7 +180,6 @@ geom_line()+scale_x_date(date_labels = "%m/%Y")+
 
 
 ###茶葉區
-```{r}
 ##客戶年齡分析
 ```{r}
 #年齡分佈&折線圖

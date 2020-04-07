@@ -11,6 +11,7 @@ library(tidyverse)
 library(lubridate)
 library(scales)
 library(plotly)
+library(googleVis)
 DA1 <- read_csv("sifa_a.csv")
 DS1 <- read_csv("sifa_s.csv")
 ```
@@ -19,6 +20,9 @@ DS1 <- read_csv("sifa_s.csv")
 ```{r}
 DA2 <- DA1 %>% select(ID, name, gender, listofcompanies, residence, channel, consultant, country, Status, referrals, datelast)
 DA2 <- transform(DA2, gender = as.factor(gender), listofcompanies = as.factor(listofcompanies), consultant = as.factor(consultant), country = as.factor(country), referrals = as.factor(referrals))
+
+#尺度縮減
+DA2$residence[DA2$residence %in% c("其他","大陸","苗栗縣","新竹縣","彰化縣","南投縣","屏東縣","基隆市","雲林縣","嘉義縣","嘉義縣","宜蘭縣","花蓮縣","嘉義市","臺東縣")] <- "全部其他"
 ```
 
 ##諮詢成交整理
@@ -101,9 +105,35 @@ P_A_Status <- DA2 %>%
   mutate(daylast_month = floor_date(datelast, 'month')) %>% 
   select(name, gender, residence, channel, daylast_month, consultant, Status) %>% 
   filter(channel != '網路名單') %>%
-group_by(daylast_month, Status, residence) %>% summarise(n_Status= n()/) %>%
+group_by(daylast_month, Status, residence) %>% summarise(n_Status= n()) %>%
 ggplot(aes(x = daylast_month, y = n_Status, col = Status) ) +
 geom_line()+scale_x_date(date_labels = "%m/%Y")
+```
+
+##動態泡泡圖示範
+```{r}
+X <- DA2 %>% 
+  mutate(daylast_month = floor_date(datelast, 'month')) %>% 
+  select(ID, residence, daylast_month, Status, channel) %>% 
+  filter(channel != '網路名單') %>%
+group_by(daylast_month, residence, Status)%>% summarise(n_s = n()) %>% ungroup() %>% filter(Status == '成功') %>% select('residence','daylast_month', 'n_s')
+
+Y <- DA2 %>% 
+  mutate(daylast_month = floor_date(datelast, 'month')) %>% 
+  select(ID, residence, daylast_month, Status, channel) %>% 
+  filter(channel != '網路名單') %>%
+group_by(residence,daylast_month)%>% summarise(n_total = n()) 
+
+Z <-left_join(Y, X, by = c('residence','daylast_month')) %>% mutate(sr = n_s/n_total) %>% select(residence, daylast_month)
+Z$residence[is.na(Z$residence)] = '未知'
+Z$sr[is.na(Z$sr)] = 0
+Z$n_s[is.na(Z$n_s)] = 0
+Z$residence <- as.factor(Z$residence)
+
+A <- DA2 %>% select(residence, datelast)
+
+gvisMotionChart(Z,idvar ='residence', timevar = 'daylast_month') %>% plot
+gvisMotionChart(A,idvar ='residence', timevar = 'datelast') %>% plot
 ```
 
 ###丁丁區
@@ -118,8 +148,9 @@ table(DA2$residence) %>% sort(T) %>% barplot(las = 2)
 ```
 
 ```{r}
-#尺度縮減
-DA2$residence[DA2$residence %in% c("其他","大陸","苗栗縣","新竹縣","彰化縣","南投縣","屏東縣","基隆市","雲林縣","嘉義縣","嘉義縣","宜蘭縣","花蓮縣","嘉義市","臺東縣")] <- "全部其它"
+
+
+
 table(DA2$residence) %>% prop.table() %>% round(2) %>% sort(T) %>% cumsum()
 
 #畫圖
@@ -157,7 +188,6 @@ geom_line()+scale_x_date(date_labels = "%m/%Y")+
 
 
 ###茶葉區
-```{r}
 ##客戶年齡分析
 ```{r}
 #年齡分佈&折線圖

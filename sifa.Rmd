@@ -124,8 +124,7 @@ Y <- DA2 %>%
   filter(channel != '網路名單') %>%
 group_by(residence,daylast_month)%>% summarise(n_total = n()) 
 
-<<<<<<< HEAD
-Z <-left_join(Y, X, by = c('residence','daylast_month')) %>% mutate(sr = n_s/n_total) %>% select(residence, daylast_month)
+Z <-left_join(Y, X, by = c('residence','daylast_month')) %>% mutate(sr = n_s/n_total)
 Z$residence[is.na(Z$residence)] = '未知'
 Z$sr[is.na(Z$sr)] = 0
 Z$n_s[is.na(Z$n_s)] = 0
@@ -135,14 +134,6 @@ A <- DA2 %>% select(residence, datelast)
 
 gvisMotionChart(Z,idvar ='residence', timevar = 'daylast_month') %>% plot
 gvisMotionChart(A,idvar ='residence', timevar = 'datelast') %>% plot
-=======
-Z <-left_join(Y, X, by = c('residence','daylast_month')) %>% mutate(sr = n_s/n_total)
-Z$residence[is.na(Z$residence)] = '未知'
-Z$sr[is.na(Z$sr)] = 0
-Z$n_s[is.na(Z$n_s)] = 0
-
-gvisMotionChart(Z, idvar = 'residence', timevar = 'daylast_month', xvar = 'n_total', yvar = 'sr') %>% plot
->>>>>>> f2430ff5feae3a7b87f1e48ffeba8d2dac80a7a2
 ```
 
 ###丁丁區

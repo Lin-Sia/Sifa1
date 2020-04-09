@@ -261,15 +261,10 @@ ggplotly(P_A_channel)
 ggplotly(P_S_school)
 ggplotly(P_S_age)
 ggplotly(P_A_residence)
-<<<<<<< HEAD
 ggplotly(P_A_consulatant)
 ggplotly(P_S_channel)
 P_A_Status
 P_A_total
 P_S_total
-=======
-P_A_Status
-P_A_total
->>>>>>> 70fad9660cf8e623d126ce75d56e3f7af40dde93
 P_A_gender
 ```
